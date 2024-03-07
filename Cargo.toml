@@ -13,7 +13,7 @@ members = [
     "benches/stack_alg_sim_bench",
     "static_ri",
     "clam_trace_gen"
-]
+, "nested_loop"]
 
 [profile.release]
 debug = true
