@@ -12,8 +12,8 @@ members = [
     "benches/lruvec_bench",
     "benches/stack_alg_sim_bench",
     "static_ri",
-    "clam_trace_gen"
-, "nested_loop"]
+    "clam_trace_gen",
+    "lease_impl"]
 
 [profile.release]
 debug = true

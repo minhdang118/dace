@@ -1,26 +1,23 @@
-use crate::utils::access4addr;
-use dace::arybase::set_arybase;
+use crate::utils::Cache;
 use dace::ast::{LoopBound, Node, Stmt};
-use fxhash::FxHashMap;
-use hist::Hist;
-use std::collections::hash_map::Entry;
-use std::collections::{BTreeSet, HashMap};
+use std::collections::HashMap;
 use std::rc::Rc;
-use std::sync::atomic::{AtomicI64, Ordering};
-use tracing::debug;
 
-static COUNTER: AtomicI64 = AtomicI64::new(0);
-
-pub fn nested_loop(code: &mut Rc<Node>) {
-    nested_loop_helper(code, &[]);
+pub fn trace_lease(code: &mut Rc<Node>) {
+    let mut cache = Cache {
+        status: HashMap::new(),
+        size: 0,
+        miss: 0,
+    };
+    trace_lease_helper(code, &[], &mut cache);
 }
 
 #[allow(non_snake_case)]
-fn nested_loop_helper(code: &Rc<Node>, ivec: &[i32]) {
+fn trace_lease_helper(code: &Rc<Node>, ivec: &[i32], cache: &mut Cache) {
     match &code.stmt {
-        // TODO: Create struct for cache status
-        // Update cache status
-        Stmt::Ref(ary_ref) => {}
+        Stmt::Ref(ary_ref) => {
+            cache.access(ary_ref.name.clone(), ary_ref.lease);
+        }
         Stmt::Loop(aloop) => {
             if let LoopBound::Fixed(lb) = aloop.lb {
                 if let LoopBound::Fixed(ub) = aloop.ub {
@@ -28,7 +25,7 @@ fn nested_loop_helper(code: &Rc<Node>, ivec: &[i32]) {
                         aloop.body.iter().for_each(|stmt| {
                             let mut myvec = ivec.to_owned();
                             myvec.push(i);
-                            nested_loop_helper(stmt, &myvec)
+                            trace_lease_helper(stmt, &myvec, cache)
                         })
                     })
                 } else {
@@ -39,13 +36,15 @@ fn nested_loop_helper(code: &Rc<Node>, ivec: &[i32]) {
             }
         }
         Stmt::Block(block) => {
-            block.iter().for_each(|stmt| nested_loop_helper(stmt, ivec));
+            block
+                .iter()
+                .for_each(|stmt| trace_lease_helper(stmt, ivec, cache));
         }
         Stmt::Branch(branch_stmt) => {
             if (branch_stmt.cond)(ivec) {
-                nested_loop_helper(&branch_stmt.then_body, ivec)
+                trace_lease_helper(&branch_stmt.then_body, ivec, cache)
             } else if let Some(else_body) = &branch_stmt.else_body {
-                nested_loop_helper(else_body, ivec)
+                trace_lease_helper(else_body, ivec, cache)
             }
         }
     }

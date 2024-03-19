@@ -83,6 +83,8 @@ pub struct AryRef {
     pub name: String,
     /// array dimensions, e.g. [5,5]
     pub dim: Vec<usize>,
+    // TODO: Update all other missing points
+    pub lease: usize,
     /// Subscript expressions: one function for each data dimension.  
     /// Each function takes the indices of its loop nest and returns indices of the array access.
     #[allow(clippy::type_complexity)]
@@ -195,6 +197,8 @@ impl Node {
         let ref_stmt = AryRef {
             name: ary_nm.to_string(),
             dim: ary_dim,
+            // dummy value
+            lease: 0,
             sub: Box::new(ary_sub),
             base: None,
             ref_id: None,
@@ -384,6 +388,8 @@ mod tests {
         let ar = AryRef {
             name: "X".to_string(),
             dim: vec![10],
+            // dummy value
+            lease: 0,
             sub: Box::new(|iv| vec![(iv[0] as usize) + 1]),
             base: None,
             ref_id: None,
